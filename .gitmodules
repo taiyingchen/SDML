@@ -1,0 +1,9 @@
+[submodule "hw1/PRUNE"]
+	path = hw1/PRUNE
+	url = https://github.com/ntumslab/PRUNE.git
+[submodule "hw1/gcn"]
+	path = hw1/gcn
+	url = https://github.com/tkipf/gcn.git
+[submodule "hw1/deepwalk"]
+	path = hw1/deepwalk
+	url = https://github.com/phanein/deepwalk.git
