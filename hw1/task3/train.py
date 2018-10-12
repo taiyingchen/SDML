@@ -19,6 +19,9 @@ from graph import Graph
 import numpy as np
 
 
+INTERVAL_DAY = 32
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('doc_dir')
@@ -105,7 +108,7 @@ def get_features(doc_1, doc_2):
     X.append(doc_2[0])
     X.append(get_timedelta(doc_1, doc_2))
     X = np.array(X)
-    X = X // 60 // 60 // 24 // 16 # seconds to days
+    X = X // (60*60*24*INTERVAL_DAY) # seconds to days
     return X
 
 
