@@ -13,3 +13,6 @@
 [submodule "hw1/SDNE"]
 	path = hw1/SDNE
 	url = https://github.com/suanrong/SDNE.git
+[submodule "hw1/physics2vec"]
+	path = hw1/physics2vec
+	url = https://github.com/everthemore/physics2vec.git
