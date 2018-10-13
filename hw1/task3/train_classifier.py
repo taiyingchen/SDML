@@ -116,8 +116,9 @@ def get_features(doc_1, doc_2, encoder):
     abstract_sim = cosine_similarity([doc_1[2]], [doc_2[2]])[0]
     X = np.concatenate((X, title_sim, abstract_sim))
     # Date difference
+    t1, t2 = get_timestamp(doc_1), get_timestamp(doc_2)
     date_diff = get_timedelta(doc_1, doc_2)
-    X = np.append(X, date_diff)
+    X = np.append(X, [t1, t2, date_diff])
     return X
 
 
@@ -128,6 +129,11 @@ def get_timedelta(doc_1, doc_2):
         logging.error(err)
         timedelta = doc_1[0].replace(tzinfo=None) - doc_2[0].replace(tzinfo=None)
     return timedelta.days
+
+
+def get_timestamp(doc):
+    timestamp = doc[0].timestamp()
+    return timestamp
 
 
 def import_docs(doc_dir):
@@ -197,8 +203,10 @@ def main(args):
         title_vector = [word_vectors[title_dict[index]] * tfidf for index, tfidf in title_tfidf if title_dict[index] in word_vectors.vocab]
         abstract_vector = [word_vectors[abstract_dict[index]] * tfidf for index, tfidf in abstract_tfidf if abstract_dict[index] in word_vectors.vocab]
         if len(title_vector) == 0:
+            logging.error('document id {} missing title vector'.format(key))
             title_vector = np.zeros((1, word_vectors.vector_size))
         if len(abstract_vector) == 0:
+            logging.error('document id {} missing abstract vector'.format(key))
             abstract_vector = np.zeros((1, word_vectors.vector_size))
         title_vector = np.average(title_vector, axis=0)
         abstract_vector = np.average(abstract_vector, axis=0)
@@ -249,10 +257,11 @@ def main(args):
 
     # # Train classifier
     logging.info('Train classifier')
-    clf = XGBClassifier(n_estimators=200, max_depth=40, verbose=True)
+    clf = XGBClassifier(max_depth=80, n_jobs=8, verbose=True)
     clf.fit(X_train, y_train,
             eval_set=[(X_train, y_train), (X_val, y_val)],
-            eval_metric='logloss',
+            eval_metric='error',
+            early_stopping_rounds=10,
             verbose=True)
     logging.info('Validation score: {}'.format(clf.score(X_val, y_val)))
 
