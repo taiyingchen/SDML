@@ -96,7 +96,7 @@ def negative_sampling(adj_matrix, topo_sort, docs, n_sample, encoder):
             timedelta = get_timedelta(docs[u], docs[v])
             if timedelta > 0:
                 adj_matrix[u][v] = 1
-                x = get_features(docs[u], docs[v], encoder)
+                x = get_features(docs[u], docs[v], encoder, adj_matrix)
                 X.append(x)
 
     X = np.array(X)
@@ -104,7 +104,7 @@ def negative_sampling(adj_matrix, topo_sort, docs, n_sample, encoder):
     return X, y
 
 
-def get_features(doc_1, doc_2, encoder):
+def get_features(doc_1, doc_2, encoder, adj_matrix):
     date_vec = [date2vec(doc_1[0]), date2vec(doc_2[0])]
     date_vec_one_hot = encoder.transform(date_vec)
     X = date_vec_one_hot.flatten() # Date vector
@@ -119,6 +119,10 @@ def get_features(doc_1, doc_2, encoder):
     t1, t2 = get_timestamp(doc_1), get_timestamp(doc_2)
     date_diff = get_timedelta(doc_1, doc_2)
     X = np.append(X, [t1, t2, date_diff])
+    # Graph informations
+    # In-degree of cited paper
+    in_degree = len(adj_matrix[:][doc_2[3]].nonzero())
+    X = np.append(X, in_degree)
     return X
 
 
@@ -155,7 +159,7 @@ def import_docs(doc_dir):
         if cnt % 1000 == 0: logging.info('Reading {} files'.format(cnt))
         date, title, abstract = parse_xml(os.path.join(doc_dir, file))
         key = int(re.search(r'\d+', file).group())
-        docs[key] = [date, title, abstract]
+        docs[key] = [date, title, abstract, key]
     return docs
 
 
@@ -216,14 +220,15 @@ def main(args):
     logging.info('Sampling training data')
     # Positive sampling
     train_graph = np.loadtxt(args.trains_file).astype(np.int32)
-    max_index = np.max(train_graph) + 1
+    test_graph = np.loadtxt(args.test_file).astype(np.int32)
+    max_index = max(np.max(train_graph), np.max(test_graph)) + 1
     adj_matrix = np.zeros((max_index, max_index), dtype=np.int8)
     X_p = []
     for u, v in train_graph:
         adj_matrix[u][v] = 1
         timedelta = get_timedelta(docs[u], docs[v])
         if timedelta > 0:
-            x = get_features(docs[u], docs[v], enc)
+            x = get_features(docs[u], docs[v], enc, adj_matrix)
             X_p.append(x)
     X_p = np.array(X_p)
     y_p = np.ones(X_p.shape[0])
@@ -239,17 +244,23 @@ def main(args):
     X, y = np.concatenate((X_p, X_n)), np.concatenate((y_p, y_n))
 
     logging.info('Get testing data')
-    test_graph = np.loadtxt(args.test_file).astype(np.int32)
     X_test = []
     false_indices = []
     for index, [u, v] in enumerate(test_graph):
-        x = get_features(docs[u], docs[v], enc)
+        x = get_features(docs[u], docs[v], enc, adj_matrix)
         timedelta = get_timedelta(docs[u], docs[v])
         if timedelta < 0:
             false_indices.append(index)
         X_test.append(x)
     X_test = np.array(X_test)
  
+
+    # Feature scaling
+    scaler = MinMaxScaler()
+    scaler.fit(np.concatenate((X, X_test)))
+    X = scaler.transform(X)
+    X_test = scaler.transform(X_test)
+
 
     # Split validation data
     X_train, X_val, y_train, y_val = train_test_split(
