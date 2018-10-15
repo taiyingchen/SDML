@@ -7,6 +7,9 @@ import time
 from collections import defaultdict
 
 import numpy as np
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation
+from keras.callbacks import EarlyStopping
 import scipy
 from dateutil.parser import parse
 from scipy.sparse import csr_matrix
@@ -78,12 +81,16 @@ def date2vec(date):
     return [date.year, date.month, date.day, date.weekday()]
 
 
-def negative_sampling(adj_matrix, topo_sort, docs, n_sample, encoder):
+def negative_sampling(test_graph, adj_matrix_org, topo_sort, docs, n_sample, encoder):
     logging.info('Negative sampling')
-    hop_matrix = csr_matrix(adj_matrix)
+    hop_matrix = csr_matrix(adj_matrix_org)
     hop_matrix = hop_matrix * hop_matrix
     row, col = hop_matrix.nonzero()
     X = []
+
+    adj_matrix = adj_matrix_org.copy()
+    for u, v in test_graph:
+        adj_matrix[u][v] = 1
 
     topo_dict = defaultdict(int)
     for index, node_id in enumerate(topo_sort):
@@ -105,11 +112,12 @@ def negative_sampling(adj_matrix, topo_sort, docs, n_sample, encoder):
 
 
 def get_features(doc_1, doc_2, encoder, adj_matrix):
-    date_vec = [date2vec(doc_1[0]), date2vec(doc_2[0])]
-    date_vec_one_hot = encoder.transform(date_vec)
-    X = date_vec_one_hot.flatten() # Date vector
-    X = np.concatenate((X, doc_1[1], doc_2[1])) # Title vector
-    X = np.concatenate((X, doc_1[2], doc_2[2])) # Abstract vector
+    X = np.array([])
+    # date_vec = [date2vec(doc_1[0]), date2vec(doc_2[0])]
+    # date_vec_one_hot = encoder.transform(date_vec).flatten()
+    # X = np.concatenate((X, date_vec_one_hot)) # Date vector
+    # X = np.concatenate((X, doc_1[1], doc_2[1])) # Title vector
+    # X = np.concatenate((X, doc_1[2], doc_2[2])) # Abstract vector
     # Other features
     # Cosine similarity on title and abstract
     title_sim = cosine_similarity([doc_1[1]], [doc_2[1]])[0]
@@ -238,10 +246,17 @@ def main(args):
     topo_sort = g.topological_sort()
 
     # Negative sampling
-    X_n, y_n = negative_sampling(adj_matrix, topo_sort, docs, X_p.shape[0], enc)
+    X_n, y_n = negative_sampling(test_graph, adj_matrix, topo_sort, docs, X_p.shape[0], enc)
 
     # Concatenate positive and negative samples
     X, y = np.concatenate((X_p, X_n)), np.concatenate((y_p, y_n))
+
+    # X_indices = np.load('./train_x/train_x/section_1.npy')
+    # y = np.load('./train_x/train_y/section_1.npy')
+    # X = []
+    # for index, [u, v] in enumerate(X_indices):
+    #     X.append(get_features(docs[u], docs[v], enc, adj_matrix))
+    # X = np.array(X)
 
     logging.info('Get testing data')
     X_test = []
@@ -268,15 +283,33 @@ def main(args):
 
     # # Train classifier
     logging.info('Train classifier')
-    clf = XGBClassifier(max_depth=80, n_jobs=8, verbose=True)
-    clf.fit(X_train, y_train,
-            eval_set=[(X_train, y_train), (X_val, y_val)],
-            eval_metric='error',
-            early_stopping_rounds=10,
-            verbose=True)
-    logging.info('Validation score: {}'.format(clf.score(X_val, y_val)))
+    # clf = XGBClassifier(max_depth=80, n_jobs=8, verbose=True)
+    # clf.fit(X_train, y_train,
+    #         eval_set=[(X_train, y_train), (X_val, y_val)],
+    #         eval_metric='error',
+    #         early_stopping_rounds=10,
+    #         verbose=True)
+    # logging.info('Validation score: {}'.format(clf.score(X_val, y_val)))
 
-    y_test = clf.predict(X_test).astype(np.float64)
+    model = Sequential()
+
+    model.add(Dense(256, input_dim=X.shape[1], activation='relu'))
+    model.add(Dense(256, activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(1, activation='sigmoid'))
+
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=['accuracy'])
+    es = EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='auto')
+    model.fit(X_train, y_train, batch_size=100, epochs=100, callbacks=[es], validation_data=(X_val, y_val))
+    score = model.evaluate(X_val, y_val)
+    logging.info(score)
+
+    y_test = model.predict(X_test)
+    y_test[y_test >= 0.5] = 1
+    y_test[y_test < 0.5] = 0
+    # y_test = clf.predict(X_test).astype(np.float64)
     # median = np.median(y_test)
     # y_test = (y_test > median)
     for index in false_indices:
@@ -288,7 +321,7 @@ def main(args):
 
     with open(args.output_file, 'w') as f:
         f.write('query_id,prediction\n')
-        for index, value in enumerate(pred):
+        for index, [value] in enumerate(pred):
             f.write('{},{}\n'.format(index+1, value))
 
 
