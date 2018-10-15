@@ -1,17 +1,16 @@
 import argparse
+import datetime
 import logging
+import math
 import os
 import re
-from dateutil.parser import parse
-import datetime
 import time
-import math
-from utils import *
-
-import numpy as np
 from collections import defaultdict
 
-INTERVAL_DAY = 32
+import numpy as np
+from dateutil.parser import parse
+
+from utils import *
 
 
 def parse_args():

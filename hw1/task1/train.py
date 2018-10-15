@@ -15,13 +15,13 @@ from graph import Graph
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('train_file')
-    parser.add_argument('test_seen_file')
-    parser.add_argument('test_file')
-    parser.add_argument('embedding_file')
-    parser.add_argument('embedding_file_format')
-    parser.add_argument('output_file')
+    parser = argparse.ArgumentParser(description='Link prediction by similarity of graph embedding')
+    parser.add_argument('--train_file', type=str, required=True, help='t1-train.txt file')
+    parser.add_argument('--test_seen_file', type=str, required=True, help='t1-test-seen.txt file')
+    parser.add_argument('--test_file', type=str, required=True, help='t1-train.txt file')
+    parser.add_argument('--embedding_file', type=str, required=True, help='Graph embedding file, ex. deepwalk.embeddings')
+    parser.add_argument('--embedding_file_format', type=str, default='deepwalk', help='Embedding file format, either "deepwalk" or "prune"')
+    parser.add_argument('--output_file', type=str, required=True, help='Output file, ex. pred.csv')
     parser.add_argument('--negative_size', type=float, default=1.0)
     parser.add_argument('--test_size', type=float, default=0.1)
     return parser.parse_args()

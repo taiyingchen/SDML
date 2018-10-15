@@ -25,13 +25,13 @@ from utils import *
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('doc_dir')
-    parser.add_argument('trains_file')
-    parser.add_argument('test_file')
-    parser.add_argument('phraser')
-    parser.add_argument('w2v_model')
-    parser.add_argument('output_file')
+    parser = argparse.ArgumentParser(description='Link prediction by similarity of graph embedding')
+    parser.add_argument('--doc_dir', type=str, required=True, help='Document directory which place XML files')
+    parser.add_argument('--train_file', type=str, required=True, help='t1-train.txt file')
+    parser.add_argument('--test_file', type=str, required=True, help='t1-test.txt file')
+    parser.add_argument('--phraser', type=str, required=True, help='N-gram phraser model sfile')
+    parser.add_argument('--w2v_model', type=str, required=True, help='Word2vec model file')
+    parser.add_argument('--output_file', type=str, required=True, help='Output file, ex. pred.csv')
     parser.add_argument('--test_size', type=float, default=0.1)
     return parser.parse_args()
 
@@ -227,7 +227,7 @@ def main(args):
 
     logging.info('Sampling training data')
     # Positive sampling
-    train_graph = np.loadtxt(args.trains_file).astype(np.int32)
+    train_graph = np.loadtxt(args.train_file).astype(np.int32)
     test_graph = np.loadtxt(args.test_file).astype(np.int32)
     max_index = max(np.max(train_graph), np.max(test_graph)) + 1
     adj_matrix = np.zeros((max_index, max_index), dtype=np.int8)
@@ -251,12 +251,6 @@ def main(args):
     # Concatenate positive and negative samples
     X, y = np.concatenate((X_p, X_n)), np.concatenate((y_p, y_n))
 
-    # X_indices = np.load('./train_x/train_x/section_1.npy')
-    # y = np.load('./train_x/train_y/section_1.npy')
-    # X = []
-    # for index, [u, v] in enumerate(X_indices):
-    #     X.append(get_features(docs[u], docs[v], enc, adj_matrix))
-    # X = np.array(X)
 
     logging.info('Get testing data')
     X_test = []
@@ -294,7 +288,7 @@ def main(args):
     model = Sequential()
 
     model.add(Dense(256, input_dim=X.shape[1], activation='relu'))
-    model.add(Dense(256, activation='relu'))
+    model.add(Dense(512, activation='relu'))
     model.add(Dense(512, activation='relu'))
     model.add(Dense(512, activation='relu'))
     model.add(Dropout(0.5))
@@ -304,14 +298,13 @@ def main(args):
     es = EarlyStopping(monitor='val_loss', patience=5, verbose=0, mode='auto')
     model.fit(X_train, y_train, batch_size=100, epochs=100, callbacks=[es], validation_data=(X_val, y_val))
     score = model.evaluate(X_val, y_val)
-    logging.info(score)
+    print('Validation score:', score)
+
 
     y_test = model.predict(X_test)
     y_test[y_test >= 0.5] = 1
     y_test[y_test < 0.5] = 0
-    # y_test = clf.predict(X_test).astype(np.float64)
-    # median = np.median(y_test)
-    # y_test = (y_test > median)
+
     for index in false_indices:
         y_test[index] = 0
 

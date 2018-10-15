@@ -6,13 +6,22 @@
 
 [《Structural Deep Network Embedding》阅读笔记](https://zhuanlan.zhihu.com/p/24769965)
 
-
-
 ## Word Embedding
 
 ### Preprocessing
 
 [gensim.parsing.preprocessing](https://radimrehurek.com/gensim/parsing/preprocessing.html#gensim.parsing.preprocessing.preprocess_string)
+
+[gensim pre-trained models](https://github.com/RaRe-Technologies/gensim-data)
+
+#### One-Hot Encode
+
+[sklearn.preprocessing.OneHotEncoder](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.OneHotEncoder.html)
+
+#### TF-IDF
+
+[models.tfidfmodel – TF-IDF model](https://radimrehurek.com/gensim/models/tfidfmodel.html)
+[gensim.corpora.dictionary – Construct word<->id mapping](https://radimrehurek.com/gensim/corpora/dictionary.html)
 
 ### Doc2vec
 
