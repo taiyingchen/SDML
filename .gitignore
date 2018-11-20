@@ -110,8 +110,11 @@ venv.bak/
 *.zip
 *.npy
 *.model
+*.h5
 *.embeddings
 *.key
 *.pages
 *.pdf
 r069220*/
+hw1/
+hw2/
