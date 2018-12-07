@@ -1,1 +1,1 @@
-# Secial topics on Machine Learning
+# Secial Directions on Machine Learning (SDML)
