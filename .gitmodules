@@ -16,3 +16,6 @@
 [submodule "hw1/physics2vec"]
 	path = hw1/physics2vec
 	url = https://github.com/everthemore/physics2vec.git
+[submodule "hw3/task2/nmt"]
+	path = hw3/task2/nmt
+	url = https://github.com/tensorflow/nmt.git
