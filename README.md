@@ -1,3 +1,3 @@
 # SDML
 
-NTU 2018 Fall Secial Directions on Machine Learning
+NTU 2018 Fall Special Directions on Machine Learning
